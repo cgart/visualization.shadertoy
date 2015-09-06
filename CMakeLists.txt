@@ -46,16 +46,12 @@ add_options(CXX ALL_BUILDS -std=c++11)
 build_addon(visualization.shadertoy SHADERTOY DEPLIBS)
 #include(CPack)
 
-#get_property(lib_location TARGET visualization.shadertoy PROPERTY LOCATION)
 
 add_custom_target(addon 
     COMMAND ${CMAKE_COMMAND} -E make_directory visualization.shadertoy
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/visualization.shadertoy visualization.shadertoy
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:visualization.shadertoy> visualization.shadertoy
-    COMMAND zip -r visualization.shadertoy.zip visualization.shadertoy
+    COMMAND zip -r ${CMAKE_SOURCE_DIR}/visualization.shadertoy.zip visualization.shadertoy
     DEPENDS visualization.shadertoy
 )
 
-#add_custom_command(TARGET addon POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:visualization.shadertoy> ${targetfile}
-#)

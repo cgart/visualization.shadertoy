@@ -5,11 +5,17 @@ employed as visualization addon of XBMC/Kodi.
 Requirements:
  - OpenGLES
  - Kodi 14 or higher
-
-
-Build prerequisities:
  - sudo apt-get install kodi-addon-dev  (if not available in your repository, then add developer repository of kodi)
+ - CMake 
+ - sudo apt-get install zip (needed to build the addon zip file)
 
+Build:
+ 
+ :> mkdir build
+ :> cmake ../ -DCMAKE_BUILD_TYPE=Release
+ :> make addon
+
+ You will now have a visualization.shadertoy.zip file in the main folder. Install this in Kodi from the System/Add-Ons menu.
 
 Tested on:
  - NVIDIA Jetson TK1 
