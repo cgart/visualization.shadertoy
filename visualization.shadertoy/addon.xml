@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<addon id="visualization.shadertoy" version="1.0.6" name="Shadertoy" provider-name="popcornmix">
-  <extension point="xbmc.player.musicviz" library_linux="visualization.shadertoy.so"/>
+<addon id="visualization.shadertoy.cgart" version="1.0.6" name="Shadertoy (cgart)" provider-name="popcornmix">
+  <extension point="xbmc.player.musicviz" library_linux="visualization.shadertoy.so.1.0.6"/>
   <extension point="xbmc.addon.metadata">
-    <summary lang="en">Visualisations from Shadertoy</summary>
-    <description lang="en">Visualisations from Shadertoy</description>
+    <summary lang="en">Visualisations from Shadertoy (cgart)</summary>
+    <description lang="en">Visualisations from Shadertoy as originally created by popcornmix and adopted by cgart</description>
     <platform>linux</platform>
   </extension>
 </addon>

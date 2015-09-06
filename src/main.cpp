@@ -34,17 +34,25 @@
 #include <fstream>
 #include <streambuf>
 #include <ctime>
-#include "platform/util/timeutils.h"
+#include "util/timeutils.h"
 #include <math.h>
 #include <complex.h>
 #include <limits.h>
 #include <fstream>
 #include <sstream>
+#include <random>
 
 #include "kiss_fft.h"
 #include "lodepng.h"
 
 using namespace std;
+
+
+// -------------------------settings ----------------------
+bool g_shufflePresets = false;
+int g_shufflePresetsDuration = 20 * 1000;
+bool g_shufflePresetsNonunfirom = true;
+float g_shufflePresetsNonuniformReductionFactor = 0.5;
 
 string g_pathPresets;
 
@@ -111,7 +119,7 @@ const std::vector<Preset> g_presets =
 
 int g_currentPreset = 0;
 char** lpresets = nullptr;
-
+    
 const char *g_fileTextures[] = {
   "tex00.png",
   "tex01.png",
@@ -466,6 +474,8 @@ GLuint iChannel[4];
 
 int width = 0;
 int height = 0;
+int num_frames = 0;
+int64_t frame_timestamp = 0;
 
 int64_t initial_time;
 int bits_precision = 0;
@@ -478,6 +488,11 @@ float *pcm = NULL;
 float *magnitude_buffer = NULL;
 GLubyte *audio_data = NULL;
 int samplesPerSec = 0;
+
+std::vector<double> presetSamplingWeight(g_presets.size(), 1.0);
+std::random_device randomDevice;
+std::mt19937 randomGenerator(randomDevice());
+int64_t lastPresetChangeTime = 0;
 
 void unloadTextures() {
   for (int i=0; i<4; i++) {
@@ -581,12 +596,7 @@ void loadPreset(int preset, std::string vsSource, std::string fsSource)
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->framebuffer_texture, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   initial_time = PLATFORM::GetTimeMs();
-}
-
-static uint64_t GetTimeStamp() {
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    return tv.tv_sec*(uint64_t)1000000+tv.tv_usec;
+  lastPresetChangeTime = initial_time;
 }
 
 static void RenderTo(GLuint shader, GLuint effect_fb)
@@ -625,7 +635,8 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
         if (g_presets[g_currentPreset].channel[i] == 99) {
           glActiveTexture(GL_TEXTURE0 + i);
           glBindTexture(GL_TEXTURE_2D, iChannel[i]);
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, NUM_BANDS, 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, audio_data);
+          //glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, NUM_BANDS, 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, audio_data);
+          glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NUM_BANDS, 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, audio_data);
         }
       }
       needsUpload = false;
@@ -702,40 +713,6 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
 }
 
 
-//-- Render -------------------------------------------------------------------
-// Called once per frame. Do all rendering here.
-//-----------------------------------------------------------------------------
-extern "C" void Render()
-{
-  glGetError();
-  //cout << "Render" << std::endl;
-  if (initialized) {
-#if defined(HAS_GLES)
-    if (state->fbwidth && state->fbheight) {
-      RenderTo(shadertoy_shader, state->effect_fb);
-      RenderTo(state->render_program, 0);
-    } else {
-      RenderTo(shadertoy_shader, 0);
-    }
-#else
-    RenderTo(shadertoy_shader, 0);
-#endif
-    static int frames = 0;
-    static uint64_t ts;
-    if (frames == 0) {
-      ts = GetTimeStamp();
-    }
-    frames++;
-    uint64_t ts2 = GetTimeStamp();
-    if (ts2 - ts > 1e6)
-    {
-     printf("%d fps\n", frames);
-     ts += 1e6;
-     frames = 0;
-    }
-  }
-}
-
 static int determine_bits_precision()
 {
   std::string vsPrecisionSource = TO_STRING(
@@ -810,7 +787,7 @@ static double measure_performance(int preset, int size)
 static void launch(int preset)
 {
   bits_precision = determine_bits_precision();
-  // mali-400 has only 10 bits which means milliseond timer wraps after ~1 second.
+  // mali-400 has only 10 bits which means millisecond timer wraps after ~1 second.
   // we'll fudge that up a bit as having a larger range is more important than ms accuracy
   bits_precision = max(bits_precision, 13);
   printf("bits=%d\n", bits_precision);
@@ -880,6 +857,67 @@ void WriteToBuffer(const float *input, size_t length, size_t channels)
   }
 }
 
+
+//-- Render -------------------------------------------------------------------
+// Called once per frame. Do all rendering here.
+//-----------------------------------------------------------------------------
+extern "C" void Render()
+{
+  glGetError();
+  //cout << "Render" << std::endl;
+  if (initialized){
+#if defined(HAS_GLES)
+    if (state->fbwidth && state->fbheight) {
+      RenderTo(shadertoy_shader, state->effect_fb);
+      RenderTo(state->render_program, 0);
+    } else {
+      RenderTo(shadertoy_shader, 0);
+    }
+#else
+    RenderTo(shadertoy_shader, 0);
+#endif
+    
+    if (num_frames++ == 0)
+      frame_timestamp = PLATFORM::GetTimeMs();
+    
+    if (PLATFORM::GetTimeMs() - frame_timestamp > 1e3)
+    {
+      printf("%d fps\n", num_frames);
+      frame_timestamp += 1e3;
+      num_frames = 0;
+    }
+    
+    // change preset if it is about the time
+    if (frame_timestamp > lastPresetChangeTime + g_shufflePresetsDuration)
+    {
+        lastPresetChangeTime = frame_timestamp;
+        
+        // non-uniform sampling - we sample based on the weights
+        if (g_shufflePresetsNonunfirom)
+        {
+            std::discrete_distribution<> rnd(presetSamplingWeight.begin(), presetSamplingWeight.end());
+            g_currentPreset = rnd(randomGenerator);
+            presetSamplingWeight[g_currentPreset] *= g_shufflePresetsNonuniformReductionFactor;
+            
+            if (presetSamplingWeight[g_currentPreset] < 1e-10)
+                presetSamplingWeight[g_currentPreset] = 1.0;
+            
+        // uniform sampling
+        }else
+        {
+            std::uniform_int_distribution<> rnd(0, g_presets.size());
+            g_currentPreset = rnd(randomGenerator);
+        }
+        
+        launch(g_currentPreset);
+    }
+  }
+}
+
+
+//-- AudioData ------------------------------------------------------------------
+// Called from XBMC to deliver to chunk of audio
+//-----------------------------------------------------------------------------
 extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *pFreqData, int iFreqDataLength)
 {
   //cout << "AudioData" << std::endl;
@@ -1040,6 +1078,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   width = p->width;
   height = p->height;
 
+  presetSamplingWeight.resize(g_presets.size(), 1.0);
+  
   audio_data = new GLubyte[AUDIO_BUFFER]();
   magnitude_buffer = new float[NUM_BANDS]();
   pcm = new float[AUDIO_BUFFER]();
@@ -1203,6 +1243,26 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     return ADDON_STATUS_OK;
   }
 
+  if (strcmp(strSetting, "shufflePresets") == 0)
+  {
+    g_shufflePresets = *(bool*)value;
+    if (g_shufflePresets) cout << "Enable preset shuffling" << endl;
+    else cout << "Disable preset shuffling" << endl;
+  }
+  
+  if (strcmp(strSetting, "shufflePresetsDelay") == 0)
+  {
+    g_shufflePresetsDuration = *(int*)value * 1000;
+    cout << "Change preset every: " << g_shufflePresetsDuration << " ms" << endl;
+  }
+
+  if (strcmp(strSetting, "shufflePresetsNonuniform") == 0)
+  {
+    g_shufflePresetsNonunfirom = *(bool*)value;
+    if (g_shufflePresetsNonunfirom) cout << "Use non-uniform preset shuffling" << endl;
+    else cout << "Unfirom random sampling shuffling" << endl;
+  }
+  
   return ADDON_STATUS_UNKNOWN;
 }
 

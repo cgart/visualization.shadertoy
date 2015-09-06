@@ -6,14 +6,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 
 find_package(kodi REQUIRED)
 
-find_package(OpenGL)
-if(OPENGL_FOUND)
-  find_package(GLEW REQUIRED)
-  set(INCLUDES ${OpenGL_INCLUDE_DIR}
-               ${GLEW_INCLUDE_DIR})
-  add_definitions(-DHAS_OPENGL)
-  set(DEPLIBS ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
-else()
+#find_package(OpenGL)
+#if(OPENGL_FOUND)
+#  find_package(GLEW REQUIRED)
+#  set(INCLUDES ${OpenGL_INCLUDE_DIR}
+#               ${GLEW_INCLUDE_DIR})
+#  add_definitions(-DHAS_OPENGL)
+#  set(DEPLIBS ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+#else()
   find_package(OpenGLES2)
   if(OPENGLES2_FOUND)
     set(INCLUDES ${OPENGLES2_INCLUDE_DIR})
@@ -22,11 +22,12 @@ else()
   else()
     message(FATAL_ERROR "No rendering API found. Bailing")
   endif()
-endif()
+#endif()
 
 include_directories(${INCLUDES}
                     ${KODI_INCLUDE_DIR}
                     ${PROJECT_SOURCE_DIR}/lib/kissfft
+                    ${PROJECT_SOURCE_DIR}/external/libplatform/src
                     ${CMAKE_INCLUDE_PATH})
 
 add_subdirectory(lib/kissfft)
@@ -43,5 +44,18 @@ endif()
 add_options(CXX ALL_BUILDS -std=c++11)
 
 build_addon(visualization.shadertoy SHADERTOY DEPLIBS)
+#include(CPack)
 
-include(CPack)
+#get_property(lib_location TARGET visualization.shadertoy PROPERTY LOCATION)
+
+add_custom_target(addon 
+    COMMAND ${CMAKE_COMMAND} -E make_directory visualization.shadertoy
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/visualization.shadertoy visualization.shadertoy
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:visualization.shadertoy> visualization.shadertoy
+    COMMAND zip -r visualization.shadertoy.zip visualization.shadertoy
+    DEPENDS visualization.shadertoy
+)
+
+#add_custom_command(TARGET addon POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:visualization.shadertoy> ${targetfile}
+#)
