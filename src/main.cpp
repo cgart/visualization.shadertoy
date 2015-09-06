@@ -47,13 +47,16 @@
 
 using namespace std;
 
-#define FUNCTION_ENTER_DUMP(a) \
+#ifdef DEBUG
+#define FUNCTION_ENTER
+#else
+#define FUNCTION_ENTER \
     struct __funcDbg { \
-          __funcDbg() { cout << "BEGIN: " << a << endl; };\
-          ~__funcDbg() { cout << "END: " << a << endl; };\
-    } __funcDbgRai;
-
-#define FUNCTION_ENTER FUNCTION_ENTER_DUMP(__PRETTY_FUNCTION__)
+        const char* funcname; \
+          __funcDbg(const char* fn) : funcname(fn) { cout << "BEGIN: " << funcname << endl; };\
+          ~__funcDbg() { cout << "END: " << funcname << endl; };\
+    } __funcDbgRai(__PRETTY_FUNCTION__);
+#endif 
 
 
 // -------------------------settings ----------------------
@@ -242,6 +245,7 @@ float linearToDecibels(float linear) {
 
 #define AUDIO_BUFFER (1024)
 #define NUM_BANDS (AUDIO_BUFFER / 2)
+//#define NUM_BANDS (AUDIO_BUFFER)
 
 GLuint createTexture(GLint format, unsigned int w, unsigned int h, const GLvoid * data) {
   GLuint texture = 0;
@@ -490,8 +494,8 @@ GLint iChannelResolutionLoc = 0;
 GLint iChannelLoc[4];
 GLuint iChannel[4];
 
-int width = 0;
-int height = 0;
+int win_width = 0;
+int win_height = 0;
 int num_frames = 0;
 int64_t frame_timestamp = 0;
 
@@ -655,7 +659,7 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
   // rebuild shader if changed
   if (shader == shadertoy_shader)
   {
-    GLuint w = width, h = height;
+    GLuint w = win_width, h = win_height;
 #if defined(HAS_GLES)
     if (state->fbwidth && state->fbheight)
       w = state->fbwidth, h = state->fbheight;
@@ -683,7 +687,7 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
     glUniform1f(iSampleRateLoc, samplesPerSec);
     glUniform1fv(iChannelTimeLoc, 4, tv);
 #if defined(HAS_GLES)
-    glUniform2f(state->uScale, (GLfloat)width/state->fbwidth, (GLfloat)height/state->fbheight);
+    glUniform2f(state->uScale, (GLfloat)win_width/state->fbwidth, (GLfloat)win_height/state->fbheight);
 #endif
     time_t now = time(NULL);
     tm *ltm = localtime(&now);
@@ -841,19 +845,20 @@ static void launch(int preset)
   double t1 = measure_performance(preset, size1);
   double t2 = measure_performance(preset, size2);
  
-  double expected_fps = 40.0;
+  double expected_fps = 50.0;
   // time per pixel for rendering fragment shader
   double B = (t2-t1)/(size2*size2-size1*size1);
   // time to render to screen
   double A = t2 - size2*size2 * B;
   // how many pixels get the desired fps
   double pixels = (1000.0/expected_fps - A) / B;
-  state->fbwidth = sqrtf(pixels * width / height);
-  if (state->fbwidth * 4 >= width * 3)
-    state->fbwidth = 0;
-  else if (state->fbwidth < 320)
+  state->fbwidth = sqrtf(pixels * win_width / win_height);
+  if (state->fbwidth * 4 >= win_width * 3)
+    state->fbwidth = win_width * 3 / 4;
+  
+  if (state->fbwidth < 320)
     state->fbwidth = 320;
-  state->fbheight = state->fbwidth * height / width;
+  state->fbheight = state->fbwidth * win_height / win_width;
 
   printf("expected fps=%f, pixels=%f %dx%d (A:%f B:%f t1:%.1f t2:%.1f)\n", expected_fps, pixels, state->fbwidth, state->fbheight, A, B, t1, t2);
 
@@ -921,7 +926,7 @@ extern "C" void Render()
     
     if (PLATFORM::GetTimeMs() - frame_timestamp > 1e3)
     {
-      //printf("%d fps\n", num_frames);
+      //printf("%d fps : %lld > %lld\n", num_frames, frame_timestamp, lastPresetChangeTime + g_shufflePresetsDuration);
       frame_timestamp += 1e3;
       num_frames = 0;
     }
@@ -1124,8 +1129,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   LogProps(p);
 
   g_pathPresets = p->presets;
-  width = p->width;
-  height = p->height;
+  win_width = p->width;
+  win_height = p->height;
 
   presetSamplingWeight.clear();
   presetSamplingWeight.resize(g_presets.size(), 1.0);
@@ -1301,8 +1306,12 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     
   } else if (strcmp(strSetting, "lastpresetchangetime") == 0)
   {
-    cout << "lastpresetchangetime = " << *((int *)value) << endl;
-    lastPresetChangeTime = *(int *)value;
+    int last = *(int*)value;
+    cout << "lastpresetchangetime = " << last << endl;
+    if (last < PLATFORM::GetTimeMs() + g_shufflePresetsDuration)
+        lastPresetChangeTime = last;
+    else
+        lastPresetChangeTime = PLATFORM::GetTimeMs();
     
   } else if (strcmp(strSetting, "shufflePresets") == 0)
   {
