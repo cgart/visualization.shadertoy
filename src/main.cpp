@@ -1253,7 +1253,7 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
   
   if (strcmp(strSetting, "shufflePresetsDelay") == 0)
   {
-    g_shufflePresetsDuration = *(int*)value * 1000;
+    g_shufflePresetsDuration = *((int*)value) * 1000;
     cout << "Change preset every: " << g_shufflePresetsDuration << " ms" << endl;
   }
 
