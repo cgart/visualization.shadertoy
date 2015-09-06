@@ -1,5 +1,6 @@
 This is an implementation of a collection of shaders from ShaderToy.com
-employed as visualization addon of XBMC/Kodi.
+employed as visualization addon of XBMC/Kodi. This fork includes additional
+settings, random preset changes and additional shaders.
 
 
 Requirements:
