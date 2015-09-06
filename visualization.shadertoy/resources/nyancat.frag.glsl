@@ -1,10 +1,14 @@
 // Taken from https://www.shadertoy.com/view/4dXGWH
 
+#ifdef GL_ES
+precision highp float;
+#endif
+
 /*by mu6k, Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
- 
- I started animating the nyancat image. I looked up the original colors 
- for rainbow and background. I kept adding stuff until I ended up with 
- something I could watch for 10 hours. Nah 10 hours is too long... or is it? 
+
+ I started animating the nyancat image. I looked up the original colors
+ for rainbow and background. I kept adding stuff until I ended up with
+ something I could watch for 10 hours. Nah 10 hours is too long... or is it?
 
  Feel free to tweak the quality parameter... if you have a monster pc.
 
@@ -106,15 +110,15 @@ vec3 background(vec2 p)
 	vec2 pm = mod(p,vec2(0.5));
 	float q = pm.x+pm.y;
 	vec3 color = vec3(13,66,121)/255.0;
-	
+
 	vec2 visuv = p*0.5;
 	vec2 visuvm = mod(visuv,vec2(0.05,0.05));
 	visuv-=visuvm;
 	float vis = texture2D(iChannel0,vec2((visuv.x+1.0)*.5,0.0)).y*2.0-visuv.y;
-	
+
 	if (vis>1.0&&visuvm.x<0.04&&visuvm.y<0.04)
 		color.xyz *=0.85;
-	
+
 	vec2 p2;
 	float stars;
 	for (int i=0; i<5; i++)
@@ -125,39 +129,39 @@ vec3 background(vec2 p)
 		stars=noise(p2*16.0);
 		if (stars>0.98) color=vec3(1.0,1.0,1.0);
 	}
-	
+
 	vec2 visuv2 = p*0.25+vec2(iGlobalTime*0.1,0);
 	vec2 visuvm2 = mod(visuv2,vec2(0.05,0.05));
 	visuv2-=visuvm2;
-	
+
 	float vis2p = hash(visuv2);
 	float vis2 = texture2D(iChannel0,vec2(vis2p,0)).y;
-	
+
 	vis2 = pow(vis2,20.0)*261.0;
 	vis2 *= vis2p;
-	
+
 	if (vis2>1.0) vis2=1.0;
-	
+
 	if (vis2>0.2&&visuvm2.x<0.09&&visuvm2.y<0.09)
 		color+=vec3(vis2,vis2,vis2)*0.5;
-	
+
 	return color;
 }
 
 vec4 rainbow(vec2 p)
 {
-	
+
 	p.x-=mod(p.x,0.05);
 	float q = max(p.x,-0.1);
 	float s = sin(p.x*(8.0)+iGlobalTime*8.0)*0.09;
 	s-=mod(s,0.05);
 	p.y+=s;
-	
-	
+
+
 //p.y += sin(p.x*8.0+iGlobalTime)*0.25;
-	
+
 	vec4 c;
-	
+
 	if (p.x>0.0) c=vec4(0,0,0,0); else
 	if (0.0/6.0<p.y&&p.y<1.0/6.0) c= vec4(255,43,14,255)/255.0; else
 	if (1.0/6.0<p.y&&p.y<2.0/6.0) c= vec4(255,168,6,255)/255.0; else
@@ -183,13 +187,13 @@ vec4 nyan(vec2 p)
 
 vec4 scene(vec2 uv)
 {
-	
+
 	vec4 color = nyan(uv);
 	vec3 c2 = background(uv+vec2(0,0));
 	vec4 c3 = rainbow(vec2(uv.x+0.4,0.05-uv.y*2.0+.5));
-	
+
 	vec4 c4 = mix(vec4(c2,1.0),c3,c3.a);
-		
+
 	color = mix(c4,color,color[3]);
 	return color;
 }
@@ -203,26 +207,26 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	}
 	vol*=1.0/256.0;
 	vol = pow(vol,16.0)*256.0;
-	
-	
+
+
 	vec2 uv = fragCoord.xy / iResolution.xy-0.5;
 	uv.x*=iResolution.x/iResolution.y;
 	vec2 ouv=uv;
 	float t = iGlobalTime-length(uv)*0.5;
-	
+
 	uv.x+=sin(t*0.4)*0.05;
 	uv.y+=cos(t)*0.05;
 
-	
+
 	float angle = (cos(t*0.461)+cos(t*0.71)+cos(t*0.342)+cos(t*0.512))*0.2;
 	angle+=sin(t*16.0)*vol*0.1;
 	float zoom = (cos(t*0.364)+cos(t*0.686)+cos(t*0.286)+cos(t*0.496))*0.2;
 	uv*=pow(2.0,zoom+1.0-vol*4.0);
 	uv=uv*mat2(cos(angle),-sin(angle),sin(angle),cos(angle));
-	
-	
+
+
 	vec4 color = vec4(0);
-	
+
 	uv.y+=vol;
 
 	for(int x = 0; x<quality; x++)

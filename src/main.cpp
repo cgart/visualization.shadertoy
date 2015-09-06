@@ -47,6 +47,14 @@
 
 using namespace std;
 
+#define FUNCTION_ENTER_DUMP(a) \
+    struct __funcDbg { \
+          __funcDbg() { cout << "BEGIN: " << a << endl; };\
+          ~__funcDbg() { cout << "END: " << a << endl; };\
+    } __funcDbgRai;
+
+#define FUNCTION_ENTER FUNCTION_ENTER_DUMP(__PRETTY_FUNCTION__)
+
 
 // -------------------------settings ----------------------
 bool g_shufflePresets = false;
@@ -85,7 +93,15 @@ const std::vector<Preset> g_presets =
    {"Twisted Rings by poljere",                 "twistedrings.frag.glsl",           99, -1, -1, -1},
    {"Undulant Spectre by mafik",                "undulantspectre.frag.glsl",        99, -1, -1, -1},
    {"Waves Remix by ADOB",                      "wavesremix.frag.glsl",             99, -1, -1, -1},
-   {"Circle Wave by TekF",                      "circlewave.frag.glsl",             99, -1, -1, -1}};
+   {"Circle Wave by TekF",                      "circlewave.frag.glsl",             99, -1, -1, -1},
+    
+   {"Revision 2015 Livecoding Round 1 by mu6k", "revision2015.frag.glsl",           99, -1, -1, -1},
+   {"Ribbons by XT95",                          "ribbons.frag.glsl",                99, -1, -1, -1},
+   {"Nyancat by mu6k",                          "nyancat.frag.glsl",                99, 13, -1, -1},
+   {"Kaleidoscope Visualizer by Qqwy",          "kaleidoscopevisualizer.frag.glsl", 99, 16, -1, -1},
+   {"Audio Surf by 4rknova",                    "audiosurf.frag.glsl",              99, -1, -1, -1},
+   {"I/O by movAX13h",                          "io.frag.glsl",                     99, -1, -1, -1},
+   {"Fractal Tiling by iq",                     "fractal_tiling.frag.glsl",         99, -1, -1, -1}};
 #else
 const std::vector<Preset> g_presets =
   {
@@ -134,9 +150,10 @@ const char *g_fileTextures[] = {
   "tex10.png",
   "tex11.png",
   "tex12.png",
-  "tex15.png",
-  "tex16.png",
+  "tex13.png",
   "tex14.png",
+  "tex15.png",
+  "tex16.png"
 };
 
 #if defined(HAS_GLES)
@@ -495,7 +512,10 @@ std::random_device randomDevice;
 std::mt19937 randomGenerator(randomDevice());
 int64_t lastPresetChangeTime = PLATFORM::GetTimeMs();
 
-void unloadTextures() {
+void unloadTextures()
+{
+  FUNCTION_ENTER;
+  
   for (int i=0; i<4; i++) {
     if (iChannel[i]) {
       cout << "Unloading iChannel" << i << " " << iChannel[i] << endl;
@@ -505,7 +525,10 @@ void unloadTextures() {
   }
 }
 
-void unloadPreset() {
+void unloadPreset()
+{
+  FUNCTION_ENTER;
+    
   if (shadertoy_shader) {
     glDeleteProgram(shadertoy_shader);
     shadertoy_shader = 0;
@@ -532,6 +555,8 @@ void unloadPreset() {
 
 std::string createShader(const std::string &file)
 {
+  FUNCTION_ENTER;
+    
   std::ostringstream ss;
   ss << g_pathPresets << "/resources/" << file;
   std::string fullPath = ss.str();
@@ -549,6 +574,8 @@ std::string createShader(const std::string &file)
 
 GLint loadTexture(int number)
 {
+  FUNCTION_ENTER;
+    
   if (number >= 0 && number < g_numberTextures) {
     GLint format = GL_RGBA;
     GLint scaling = GL_LINEAR;
@@ -563,6 +590,8 @@ GLint loadTexture(int number)
 
 void loadPreset(int preset, std::string vsSource, std::string fsSource)
 {
+  FUNCTION_ENTER;
+    
   unloadPreset();
   shadertoy_shader = compileAndLinkProgram(vsSource.c_str(), fsSource.c_str());
 
@@ -719,6 +748,8 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
 
 static int determine_bits_precision()
 {
+  FUNCTION_ENTER;
+    
   std::string vsPrecisionSource = TO_STRING(
 	void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	{
@@ -763,6 +794,8 @@ static int determine_bits_precision()
 
 static double measure_performance(int preset, int size)
 {
+  FUNCTION_ENTER;
+    
   int iterations = -1;
   std::string fsSource = createShader(g_presets[preset].file);
 
@@ -790,6 +823,8 @@ static double measure_performance(int preset, int size)
 
 static void launch(int preset)
 {
+  FUNCTION_ENTER;
+    
   bits_precision = determine_bits_precision();
   // mali-400 has only 10 bits which means millisecond timer wraps after ~1 second.
   // we'll fudge that up a bit as having a larger range is more important than ms accuracy
@@ -928,7 +963,6 @@ extern "C" void Render()
 //-----------------------------------------------------------------------------
 extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *pFreqData, int iFreqDataLength)
 {
-  //cout << "AudioData" << std::endl;
   WriteToBuffer(pAudioData, iAudioDataLength, 2);
 
   kiss_fft_cpx in[AUDIO_BUFFER], out[AUDIO_BUFFER];
@@ -965,7 +999,8 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
 //-----------------------------------------------------------------------------
 extern "C" void GetInfo(VIS_INFO *pInfo)
 {
-  cout << "GetInfo" << std::endl;
+  FUNCTION_ENTER;
+  
   pInfo->bWantsFreq = false;
   pInfo->iSyncDelay = 0;
 }
@@ -976,7 +1011,8 @@ extern "C" void GetInfo(VIS_INFO *pInfo)
 //-----------------------------------------------------------------------------
 extern "C" unsigned int GetSubModules(char ***names)
 {
-  cout << "GetSubModules" << std::endl;
+  FUNCTION_ENTER;
+  
   return 0; // this vis supports 0 sub modules
 }
 
@@ -985,7 +1021,8 @@ extern "C" unsigned int GetSubModules(char ***names)
 //-----------------------------------------------------------------------------
 extern "C" bool OnAction(long flags, const void *param)
 {
-  cout << "OnAction" << std::endl;
+  FUNCTION_ENTER;
+  
   switch (flags)
   {
     case VIS_ACTION_NEXT_PRESET:
@@ -1042,6 +1079,8 @@ extern "C" bool OnAction(long flags, const void *param)
 //-----------------------------------------------------------------------------
 extern "C" unsigned int GetPresets(char ***presets)
 {
+  FUNCTION_ENTER;
+  
   cout << "GetPresets " << g_presets.size() << std::endl;
 
   if (!lpresets) {
@@ -1068,7 +1107,8 @@ extern "C" unsigned GetPreset()
 //-----------------------------------------------------------------------------
 extern "C" bool IsLocked()
 {
-  cout << "IsLocked" << std::endl;
+  FUNCTION_ENTER;
+  
   return false;
 }
 
@@ -1077,7 +1117,8 @@ extern "C" bool IsLocked()
 //-----------------------------------------------------------------------------
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
-  cout << "ADDON_Create" << std::endl;
+  FUNCTION_ENTER;
+  
   VIS_PROPS *p = (VIS_PROPS *)props;
 
   LogProps(p);
@@ -1130,7 +1171,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Stop()
 {
-  cout << "ADDON_Stop" << std::endl;
+  FUNCTION_ENTER;
 }
 
 //-- Destroy ------------------------------------------------------------------
@@ -1139,7 +1180,7 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
-  cout << "ADDON_Destroy" << std::endl;
+  FUNCTION_ENTER;
 
   unloadPreset();
   unloadTextures();
@@ -1179,7 +1220,8 @@ extern "C" void ADDON_Destroy()
 //-----------------------------------------------------------------------------
 extern "C" bool ADDON_HasSettings()
 {
-  cout << "ADDON_HasSettings" << std::endl;
+  FUNCTION_ENTER;
+  
   return true;
 }
 
@@ -1189,7 +1231,8 @@ extern "C" bool ADDON_HasSettings()
 //-----------------------------------------------------------------------------
 extern "C" ADDON_STATUS ADDON_GetStatus()
 {
-  cout << "ADDON_GetStatus" << std::endl;
+  FUNCTION_ENTER;
+  
   return ADDON_STATUS_OK;
 }
 
@@ -1199,7 +1242,7 @@ extern "C" ADDON_STATUS ADDON_GetStatus()
 //-----------------------------------------------------------------------------
 extern "C" unsigned int ADDON_GetSettings(ADDON_StructSetting ***sSet)
 {
-  cout << "ADDON_GetSettings" << std::endl;
+  FUNCTION_ENTER;
   return 0;
 }
 
@@ -1210,7 +1253,7 @@ extern "C" unsigned int ADDON_GetSettings(ADDON_StructSetting ***sSet)
 
 extern "C" void ADDON_FreeSettings()
 {
-  cout << "ADDON_FreeSettings" << std::endl;
+  FUNCTION_ENTER;
 }
 
 //-- SetSetting ---------------------------------------------------------------
@@ -1219,6 +1262,8 @@ extern "C" void ADDON_FreeSettings()
 //-----------------------------------------------------------------------------
 extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* value)
 {
+  FUNCTION_ENTER;
+  
   cout << "ADDON_SetSetting " << strSetting << std::endl;
   if (!strSetting || !value)
     return ADDON_STATUS_UNKNOWN;
@@ -1291,5 +1336,7 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Announce(const char *flag, const char *sender, const char *message, const void *data)
 {
+  FUNCTION_ENTER;
+  
   cout << "ADDON_Announce " << flag << " " << sender << " " << message << std::endl;
 }

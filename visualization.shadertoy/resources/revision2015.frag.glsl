@@ -1,5 +1,9 @@
 // Taken from https://www.shadertoy.com/view/ltj3W1#
 
+#ifdef GL_ES
+precision highp float;
+#endif
+
 //#define LIGHT_REACT_TO_MUSIC
 
 #define time iGlobalTime
@@ -76,23 +80,23 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   {
     float d = df(p);
     p += d*dir;
-    
+
    }
-  
+
   vec3 l = normalize(vec3(.1,.2,.3));
 
   vec3 c = nf(p)/(1.0+df(p));
   c=vec3(.5+df(p-l*.01)*.5+df(p-l)*.5+df(p-l*2.0)*.25);
   c*= dot(nf(p),-l)*.5+.8;
   float f = texture2D( texFFT, vec2(d,.0) ).r * 100.0;
-  
+
     #ifdef LIGHT_REACT_TO_MUSIC
   float beat = texture2D(texFFTSmoothed,vec2(.1,.0)).x*1.4;
 	#else
   float beat = .7;
     #endif
-    
-    
+
+
   c = min(vec3(1.0),c);
 
   c-=texture2D(texFFTSmoothed,vec2(pow(uv.y*.5,2.0)*2.0-1.0,.0)).xxx*uv.x*2.0;
@@ -107,6 +111,3 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   t = clamp( t, 0.0, 1.0 );
   out_color = vec4(c,1.0)*beat + t*.05;;
 }
-
-
-

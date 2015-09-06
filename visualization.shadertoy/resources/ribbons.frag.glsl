@@ -1,5 +1,9 @@
 // Taken from https://www.shadertoy.com/view/lds3zr
 
+#ifdef GL_ES
+precision highp float;
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Utils
@@ -64,7 +68,7 @@ float scene(vec3 p)
 	d = min(d, ribbon2(p) );
 	d = min(d, ribbon3(p) );
 	d = min(d, ribbon4(p) );
-	
+
 	return d;
 }
 
@@ -76,13 +80,13 @@ vec3 Raymarche(vec3 org, vec3 dir, int step)
 {
 	float d=0.0;
 	vec3 p=org;
-	
+
 	for(int i=0; i<64; i++)
 	{
 		d = scene(p);
 		p += d * dir;
 	}
-	
+
 	return p;
 }
 //get Normal
@@ -118,17 +122,17 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	float bass = texture2D( iChannel0, vec2(20./256.,0.25) ).x*.75+texture2D( iChannel0, vec2(50./256.,0.25) ).x*.25;
 	vec2 v = -1.0 + 2.0 * fragCoord.xy / iResolution.xy;
 	v.x *= iResolution.x/iResolution.y;
-	
+
 	vec3 org = vec3(texture2D( iChannel0, vec2(1./256.,0.25) ).x*.2+1.,+0.3+bass*.05,t+5.);
 	vec3 dir = normalize(vec3(v.x,-v.y,2.));
 	dir = rotateX(dir,.15);
 	dir = rotateY(dir,2.8);
-	
-	
+
+
 	vec3 p = Raymarche(org,dir,48);
 	vec3 n = getN(p);
-	
-	
+
+
     color = vec4( max( dot(n.xy*-1.,normalize(p.xy-vec2(.0,-.1))),.0)*.01 );
 	color += vec4(1.0,0.3,0.0,1.0)/(ribbon1(p-n*.01)*20.+.75)*pow(bass,2.)*3.;
 	color += vec4(0.5,0.3,0.7,1.0)/(ribbon2(p-n*.01)*20.+.75)*pow(texture2D( iChannel0, vec2(64./256.,0.25) ).x,2.)*2.;
@@ -136,8 +140,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	color += vec4(0.0,1.0,0.2,1.0)/(ribbon4(p-n*.01)*20.+.75)*pow(texture2D( iChannel0, vec2(200./256.,0.25) ).x,2.)*5.;
 	color *= AO(p,n);
 	color = mix(color,vec4(0.),vec4((min(distance(org,p)*.05,1.0))));
-	
-	
+
+
 	fragColor = color;
 
 }
