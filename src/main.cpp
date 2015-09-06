@@ -459,6 +459,7 @@ std::string fsFooter =
 "}\n";
 
 bool initialized = false;
+bool preset_active = false;
 
 GLuint shadertoy_shader = 0;
 
@@ -492,7 +493,7 @@ int samplesPerSec = 0;
 std::vector<double> presetSamplingWeight(g_presets.size(), 1.0);
 std::random_device randomDevice;
 std::mt19937 randomGenerator(randomDevice());
-int64_t lastPresetChangeTime = 0;
+int64_t lastPresetChangeTime = PLATFORM::GetTimeMs();
 
 void unloadTextures() {
   for (int i=0; i<4; i++) {
@@ -525,6 +526,8 @@ void unloadPreset() {
     state->render_program = 0;
   }
 #endif
+  
+  preset_active = false;
 }
 
 std::string createShader(const std::string &file)
@@ -596,7 +599,7 @@ void loadPreset(int preset, std::string vsSource, std::string fsSource)
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->framebuffer_texture, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   initial_time = PLATFORM::GetTimeMs();
-  lastPresetChangeTime = initial_time;
+  preset_active = true;
 }
 
 static void RenderTo(GLuint shader, GLuint effect_fb)
@@ -883,7 +886,7 @@ extern "C" void Render()
     
     if (PLATFORM::GetTimeMs() - frame_timestamp > 1e3)
     {
-      printf("%d fps\n", num_frames);
+      //printf("%d fps\n", num_frames);
       frame_timestamp += 1e3;
       num_frames = 0;
     }
@@ -892,6 +895,8 @@ extern "C" void Render()
     if (g_shufflePresets && frame_timestamp > lastPresetChangeTime + g_shufflePresetsDuration)
     {
         lastPresetChangeTime = frame_timestamp;
+        
+        cout << "Shuffle preset choose preset ";
         
         // non-uniform sampling - we sample based on the weights
         if (g_shufflePresetsNonunfirom)
@@ -909,6 +914,8 @@ extern "C" void Render()
             std::uniform_int_distribution<> rnd(0, g_presets.size());
             g_currentPreset = rnd(randomGenerator);
         }
+        
+        cout << g_currentPreset << std::endl;
         
         launch(g_currentPreset);
     }
@@ -1079,6 +1086,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   width = p->width;
   height = p->height;
 
+  presetSamplingWeight.clear();
   presetSamplingWeight.resize(g_presets.size(), 1.0);
   
   audio_data = new GLubyte[AUDIO_BUFFER]();
@@ -1222,49 +1230,59 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
   // d) Writes into const setting and value...
   if (strcmp(strSetting, "###GetSavedSettings") == 0)
   {
-    cout << "WTF...." << endl;
     if (strcmp((char*)value, "0") == 0)
     {
       strcpy((char*)strSetting, "lastpresetidx");
       sprintf ((char*)value, "%i", (int)g_currentPreset);
-    }
-    if (strcmp((char*)value, "1") == 0)
+      
+    }else if (strcmp((char*)value, "1") == 0)
+    {
+        strcpy((char*)strSetting, "lastpresetchangetime");
+        sprintf ((char*)value, "%i", (int)lastPresetChangeTime);
+        
+    }else if (strcmp((char*)value, "2") == 0)
     {
       strcpy((char*)strSetting, "###End");
     }
-
+    
     return ADDON_STATUS_OK;
   }
-
+  
   if (strcmp(strSetting, "lastpresetidx") == 0)
   {
     cout << "lastpresetidx = " << *((int *)value) << endl;
     g_currentPreset = *(int *)value % g_presets.size();
     launch(g_currentPreset);
-    return ADDON_STATUS_OK;
-  }
-
-  if (strcmp(strSetting, "shufflePresets") == 0)
+    
+  } else if (strcmp(strSetting, "lastpresetchangetime") == 0)
+  {
+    cout << "lastpresetchangetime = " << *((int *)value) << endl;
+    lastPresetChangeTime = *(int *)value;
+    
+  } else if (strcmp(strSetting, "shufflePresets") == 0)
   {
     g_shufflePresets = *(bool*)value;
     if (g_shufflePresets) cout << "Enable preset shuffling" << endl;
     else cout << "Disable preset shuffling" << endl;
-  }
-  
-  if (strcmp(strSetting, "shufflePresetsDelay") == 0)
+    
+  }else if (strcmp(strSetting, "shufflePresetsDelay") == 0)
   {
-    g_shufflePresetsDuration = *((int*)value) * 1000;
+    g_shufflePresetsDuration = *(float*)value * 1000.;
     cout << "Change preset every: " << g_shufflePresetsDuration << " ms" << endl;
-  }
-
-  if (strcmp(strSetting, "shufflePresetsNonuniform") == 0)
+    
+  } else if (strcmp(strSetting, "shufflePresetsNonuniform") == 0)
   {
     g_shufflePresetsNonunfirom = *(bool*)value;
     if (g_shufflePresetsNonunfirom) cout << "Use non-uniform preset shuffling" << endl;
     else cout << "Unfirom random sampling shuffling" << endl;
+    
+  }else
+  {
+    cout << "Unknow setting: " << strSetting << endl;
+    return ADDON_STATUS_UNKNOWN;
   }
   
-  return ADDON_STATUS_UNKNOWN;
+  return ADDON_STATUS_OK;
 }
 
 //-- Announce -----------------------------------------------------------------

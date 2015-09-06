@@ -1,10 +1,11 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <settings>
-    <setting id="lastpresetidx" type="integer" default="0" visible="false" />
-    
     <category label="Presets">
+        <setting id="lastpresetidx" type="integer" default="0" visible="false" />
+        <setting id="lastpresetchangetime" type="integer" default="0" visible="false" />
+    
         <setting id="shufflePresets" type="bool" label="Shuffle Presets" default="true"/>
-        <setting id="shufflePresetsDelay" type="integer" label="Preset Time (sec)" default="30"/>
+        <setting id="shufflePresetsDelay" type="number" label="Preset Duration (sec)" default="20"/>
         <setting id="shufflePresetsNonuniform" type="bool" label="Non-uniform randomization" default="true"/>
     </category>
 </settings>
