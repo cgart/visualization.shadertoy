@@ -1,0 +1,18 @@
+This is an implementation of a collection of shaders from ShaderToy.com
+employed as visualization addon of XBMC/Kodi.
+
+
+Requirements:
+ - OpenGLES
+ - Kodi 14 or higher
+
+
+Build prerequisities:
+ - sudo apt-get install kodi-addon-dev  (if not available in your repository, then add developer repository of kodi)
+
+
+Tested on:
+ - NVIDIA Jetson TK1 
+ - Odroid XU4
+
+ 

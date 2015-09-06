@@ -620,7 +620,9 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
   glPushMatrix();
 #endif
 
-  if (shader == shadertoy_shader) {
+  // rebuild shader if changed
+  if (shader == shadertoy_shader)
+  {
     GLuint w = width, h = height;
 #if defined(HAS_GLES)
     if (state->fbwidth && state->fbheight)
@@ -635,7 +637,6 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
         if (g_presets[g_currentPreset].channel[i] == 99) {
           glActiveTexture(GL_TEXTURE0 + i);
           glBindTexture(GL_TEXTURE_2D, iChannel[i]);
-          //glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, NUM_BANDS, 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, audio_data);
           glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NUM_BANDS, 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, audio_data);
         }
       }
@@ -888,7 +889,7 @@ extern "C" void Render()
     }
     
     // change preset if it is about the time
-    if (frame_timestamp > lastPresetChangeTime + g_shufflePresetsDuration)
+    if (g_shufflePresets && frame_timestamp > lastPresetChangeTime + g_shufflePresetsDuration)
     {
         lastPresetChangeTime = frame_timestamp;
         
