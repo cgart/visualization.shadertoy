@@ -56,7 +56,7 @@ using namespace std;
           __funcDbg(const char* fn) : funcname(fn) { cout << "BEGIN: " << funcname << endl; };\
           ~__funcDbg() { cout << "END: " << funcname << endl; };\
     } __funcDbgRai(__PRETTY_FUNCTION__);
-#endif 
+#endif
 
 
 // -------------------------settings ----------------------
@@ -97,14 +97,16 @@ const std::vector<Preset> g_presets =
    {"Undulant Spectre by mafik",                "undulantspectre.frag.glsl",        99, -1, -1, -1},
    {"Waves Remix by ADOB",                      "wavesremix.frag.glsl",             99, -1, -1, -1},
    {"Circle Wave by TekF",                      "circlewave.frag.glsl",             99, -1, -1, -1},
-    
+
    {"Revision 2015 Livecoding Round 1 by mu6k", "revision2015.frag.glsl",           99, -1, -1, -1},
    {"Ribbons by XT95",                          "ribbons.frag.glsl",                99, -1, -1, -1},
    {"Nyancat by mu6k",                          "nyancat.frag.glsl",                99, 13, -1, -1},
    {"Kaleidoscope Visualizer by Qqwy",          "kaleidoscopevisualizer.frag.glsl", 99, 16, -1, -1},
    {"Audio Surf by 4rknova",                    "audiosurf.frag.glsl",              99, -1, -1, -1},
    {"I/O by movAX13h",                          "io.frag.glsl",                     99, -1, -1, -1},
-   {"Fractal Tiling by iq",                     "fractal_tiling.frag.glsl",         99, -1, -1, -1}};
+   {"Fractal Tiling by iq",                     "fractal_tiling.frag.glsl",         99, -1, -1, -1},
+   {"SH2014 Cellular by vug",                   "sh2014_cellular.frag.glsl",        99, -1, -1, -1},
+   {"Paralax Fractal Galaxy by CBS",            "galaxy.frag.glsl",                 99, -1, -1, -1}};
 #else
 const std::vector<Preset> g_presets =
   {
@@ -133,12 +135,13 @@ const std::vector<Preset> g_presets =
    {"Twisted Rings by poljere",                 "twistedrings.frag.glsl",           99, -1, -1, -1},
    {"Undulant Spectre by mafik",                "undulantspectre.frag.glsl",        99, -1, -1, -1},
    {"Demo - Volumetric Lines by iq",            "volumetriclines.frag.glsl",        99, -1, -1, -1},
+   {"Galaxy Of Universes by Dave_Hoskins",      "galaxy_spinning.frag.glsl",        99, -1, -1, -1},
    {"Waves Remix by ADOB",                      "wavesremix.frag.glsl",             99, -1, -1, -1}};
 #endif
 
 int g_currentPreset = 0;
 char** lpresets = nullptr;
-    
+
 const char *g_fileTextures[] = {
   "tex00.png",
   "tex01.png",
@@ -519,7 +522,7 @@ int64_t lastPresetChangeTime = PLATFORM::GetTimeMs();
 void unloadTextures()
 {
   FUNCTION_ENTER;
-  
+
   for (int i=0; i<4; i++) {
     if (iChannel[i]) {
       cout << "Unloading iChannel" << i << " " << iChannel[i] << endl;
@@ -532,7 +535,7 @@ void unloadTextures()
 void unloadPreset()
 {
   FUNCTION_ENTER;
-    
+
   if (shadertoy_shader) {
     glDeleteProgram(shadertoy_shader);
     shadertoy_shader = 0;
@@ -553,14 +556,14 @@ void unloadPreset()
     state->render_program = 0;
   }
 #endif
-  
+
   preset_active = false;
 }
 
 std::string createShader(const std::string &file)
 {
   FUNCTION_ENTER;
-    
+
   std::ostringstream ss;
   ss << g_pathPresets << "/resources/" << file;
   std::string fullPath = ss.str();
@@ -579,7 +582,7 @@ std::string createShader(const std::string &file)
 GLint loadTexture(int number)
 {
   FUNCTION_ENTER;
-    
+
   if (number >= 0 && number < g_numberTextures) {
     GLint format = GL_RGBA;
     GLint scaling = GL_LINEAR;
@@ -595,7 +598,7 @@ GLint loadTexture(int number)
 void loadPreset(int preset, std::string vsSource, std::string fsSource)
 {
   FUNCTION_ENTER;
-    
+
   unloadPreset();
   shadertoy_shader = compileAndLinkProgram(vsSource.c_str(), fsSource.c_str());
 
@@ -753,7 +756,7 @@ static void RenderTo(GLuint shader, GLuint effect_fb)
 static int determine_bits_precision()
 {
   FUNCTION_ENTER;
-    
+
   std::string vsPrecisionSource = TO_STRING(
 	void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	{
@@ -784,7 +787,7 @@ static int determine_bits_precision()
   }
   #endif
   int bits = 0;
-  unsigned char b = 0; 
+  unsigned char b = 0;
   for (int j=0; j<state->fbheight; j++) {
     unsigned char c = buffer[4*(j*state->fbwidth+(state->fbwidth>>1))];
     if (c && !b)
@@ -799,7 +802,7 @@ static int determine_bits_precision()
 static double measure_performance(int preset, int size)
 {
   FUNCTION_ENTER;
-    
+
   int iterations = -1;
   std::string fsSource = createShader(g_presets[preset].file);
 
@@ -828,13 +831,13 @@ static double measure_performance(int preset, int size)
 static void launch(int preset)
 {
   FUNCTION_ENTER;
-    
+
   bits_precision = determine_bits_precision();
   // mali-400 has only 10 bits which means millisecond timer wraps after ~1 second.
   // we'll fudge that up a bit as having a larger range is more important than ms accuracy
   bits_precision = max(bits_precision, 13);
   printf("bits=%d\n", bits_precision);
-  
+
   unloadTextures();
   for (int i=0; i<4; i++) {
     if (g_presets[preset].channel[i] >= 0)
@@ -844,7 +847,7 @@ static void launch(int preset)
   const int size1 = 256, size2=512;
   double t1 = measure_performance(preset, size1);
   double t2 = measure_performance(preset, size2);
- 
+
   double expected_fps = 50.0;
   // time per pixel for rendering fragment shader
   double B = (t2-t1)/(size2*size2-size1*size1);
@@ -855,7 +858,7 @@ static void launch(int preset)
   state->fbwidth = sqrtf(pixels * win_width / win_height);
   if (state->fbwidth * 4 >= win_width * 3)
     state->fbwidth = win_width * 3 / 4;
-  
+
   if (state->fbwidth < 320)
     state->fbwidth = 320;
   state->fbheight = state->fbwidth * win_height / win_width;
@@ -920,43 +923,43 @@ extern "C" void Render()
 #else
     RenderTo(shadertoy_shader, 0);
 #endif
-    
+
     if (num_frames++ == 0)
       frame_timestamp = PLATFORM::GetTimeMs();
-    
+
     if (PLATFORM::GetTimeMs() - frame_timestamp > 1e3)
     {
       //printf("%d fps : %lld > %lld\n", num_frames, frame_timestamp, lastPresetChangeTime + g_shufflePresetsDuration);
       frame_timestamp += 1e3;
       num_frames = 0;
     }
-    
+
     // change preset if it is about the time
     if (g_shufflePresets && frame_timestamp > lastPresetChangeTime + g_shufflePresetsDuration)
     {
         lastPresetChangeTime = frame_timestamp;
-        
+
         cout << "Shuffle preset choose preset ";
-        
+
         // non-uniform sampling - we sample based on the weights
         if (g_shufflePresetsNonunfirom)
         {
             std::discrete_distribution<> rnd(presetSamplingWeight.begin(), presetSamplingWeight.end());
             g_currentPreset = rnd(randomGenerator);
             presetSamplingWeight[g_currentPreset] *= g_shufflePresetsNonuniformReductionFactor;
-            
+
             if (presetSamplingWeight[g_currentPreset] < 1e-10)
                 presetSamplingWeight[g_currentPreset] = 1.0;
-            
+
         // uniform sampling
         }else
         {
             std::uniform_int_distribution<> rnd(0, g_presets.size());
             g_currentPreset = rnd(randomGenerator);
         }
-        
+
         cout << g_currentPreset << std::endl;
-        
+
         launch(g_currentPreset);
     }
   }
@@ -1005,7 +1008,7 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
 extern "C" void GetInfo(VIS_INFO *pInfo)
 {
   FUNCTION_ENTER;
-  
+
   pInfo->bWantsFreq = false;
   pInfo->iSyncDelay = 0;
 }
@@ -1017,7 +1020,7 @@ extern "C" void GetInfo(VIS_INFO *pInfo)
 extern "C" unsigned int GetSubModules(char ***names)
 {
   FUNCTION_ENTER;
-  
+
   return 0; // this vis supports 0 sub modules
 }
 
@@ -1027,7 +1030,7 @@ extern "C" unsigned int GetSubModules(char ***names)
 extern "C" bool OnAction(long flags, const void *param)
 {
   FUNCTION_ENTER;
-  
+
   switch (flags)
   {
     case VIS_ACTION_NEXT_PRESET:
@@ -1085,7 +1088,7 @@ extern "C" bool OnAction(long flags, const void *param)
 extern "C" unsigned int GetPresets(char ***presets)
 {
   FUNCTION_ENTER;
-  
+
   cout << "GetPresets " << g_presets.size() << std::endl;
 
   if (!lpresets) {
@@ -1113,7 +1116,7 @@ extern "C" unsigned GetPreset()
 extern "C" bool IsLocked()
 {
   FUNCTION_ENTER;
-  
+
   return false;
 }
 
@@ -1123,7 +1126,7 @@ extern "C" bool IsLocked()
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
   FUNCTION_ENTER;
-  
+
   VIS_PROPS *p = (VIS_PROPS *)props;
 
   LogProps(p);
@@ -1134,7 +1137,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 
   presetSamplingWeight.clear();
   presetSamplingWeight.resize(g_presets.size(), 1.0);
-  
+
   audio_data = new GLubyte[AUDIO_BUFFER]();
   magnitude_buffer = new float[NUM_BANDS]();
   pcm = new float[AUDIO_BUFFER]();
@@ -1226,7 +1229,7 @@ extern "C" void ADDON_Destroy()
 extern "C" bool ADDON_HasSettings()
 {
   FUNCTION_ENTER;
-  
+
   return true;
 }
 
@@ -1237,7 +1240,7 @@ extern "C" bool ADDON_HasSettings()
 extern "C" ADDON_STATUS ADDON_GetStatus()
 {
   FUNCTION_ENTER;
-  
+
   return ADDON_STATUS_OK;
 }
 
@@ -1268,7 +1271,7 @@ extern "C" void ADDON_FreeSettings()
 extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* value)
 {
   FUNCTION_ENTER;
-  
+
   cout << "ADDON_SetSetting " << strSetting << std::endl;
   if (!strSetting || !value)
     return ADDON_STATUS_UNKNOWN;
@@ -1284,26 +1287,26 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     {
       strcpy((char*)strSetting, "lastpresetidx");
       sprintf ((char*)value, "%i", (int)g_currentPreset);
-      
+
     }else if (strcmp((char*)value, "1") == 0)
     {
         strcpy((char*)strSetting, "lastpresetchangetime");
         sprintf ((char*)value, "%i", (int)lastPresetChangeTime);
-        
+
     }else if (strcmp((char*)value, "2") == 0)
     {
       strcpy((char*)strSetting, "###End");
     }
-    
+
     return ADDON_STATUS_OK;
   }
-  
+
   if (strcmp(strSetting, "lastpresetidx") == 0)
   {
     cout << "lastpresetidx = " << *((int *)value) << endl;
     g_currentPreset = *(int *)value % g_presets.size();
     launch(g_currentPreset);
-    
+
   } else if (strcmp(strSetting, "lastpresetchangetime") == 0)
   {
     int last = *(int*)value;
@@ -1312,30 +1315,30 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
         lastPresetChangeTime = last;
     else
         lastPresetChangeTime = PLATFORM::GetTimeMs();
-    
+
   } else if (strcmp(strSetting, "shufflePresets") == 0)
   {
     g_shufflePresets = *(bool*)value;
     if (g_shufflePresets) cout << "Enable preset shuffling" << endl;
     else cout << "Disable preset shuffling" << endl;
-    
+
   }else if (strcmp(strSetting, "shufflePresetsDelay") == 0)
   {
     g_shufflePresetsDuration = *(float*)value * 1000.;
     cout << "Change preset every: " << g_shufflePresetsDuration << " ms" << endl;
-    
+
   } else if (strcmp(strSetting, "shufflePresetsNonuniform") == 0)
   {
     g_shufflePresetsNonunfirom = *(bool*)value;
     if (g_shufflePresetsNonunfirom) cout << "Use non-uniform preset shuffling" << endl;
     else cout << "Unfirom random sampling shuffling" << endl;
-    
+
   }else
   {
     cout << "Unknow setting: " << strSetting << endl;
     return ADDON_STATUS_UNKNOWN;
   }
-  
+
   return ADDON_STATUS_OK;
 }
 
@@ -1346,6 +1349,6 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
 extern "C" void ADDON_Announce(const char *flag, const char *sender, const char *message, const void *data)
 {
   FUNCTION_ENTER;
-  
+
   cout << "ADDON_Announce " << flag << " " << sender << " " << message << std::endl;
 }
