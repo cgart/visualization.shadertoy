@@ -198,7 +198,7 @@ vec3 render( in vec3 ro, in vec3 rd )
         col += glo*2.0 * (1.0 + pow(sndbass, 5.));
     }
 
-    col *= smoothstep( 0.0, 6.0, iGlobalTime);
+    col *= smoothstep( 0.0, 3.0, iGlobalTime);
 
     return col;
 }

@@ -33,7 +33,11 @@ include_directories(${INCLUDES}
 add_subdirectory(lib/kissfft)
 
 set(SHADERTOY_SOURCES src/lodepng.cpp
-                      src/main.cpp)
+                      src/globals.cpp
+                      src/audio.cpp
+                      src/renderer.cpp
+                      src/presets.cpp
+                      src/addon.cpp)
 
 set(DEPLIBS ${DEPLIBS} kissfft)
 
