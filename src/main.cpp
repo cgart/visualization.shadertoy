@@ -80,7 +80,7 @@ const std::vector<Preset> g_presets =
    {"LED spectrum by simesgreen",               "ledspectrum.frag.glsl",            99, -1, -1, -1},
    {"2D LED Spectrum by uNiversal",             "2Dspectrum.frag.glsl",             99, -1, -1, -1},
    {"Audio Eclipse by airtight",                "audioeclipse.frag.glsl",           99, -1, -1, -1},
-   {"Audio Reaktive by choard1895",             "audioreaktive.frag.glsl",          99, -1, -1, -1},
+   //{"Audio Reaktive by choard1895",             "audioreaktive.frag.glsl",          99, -1, -1, -1},
    {"AudioVisual by Passion",                   "audiovisual.frag.glsl",            99, -1, -1, -1},
    {"Beating Circles by Phoenix72",             "beatingcircles.frag.glsl",         99, -1, -1, -1},
    {"BPM by iq",                                "bpm.frag.glsl",                    99, -1, -1, -1},
@@ -106,7 +106,9 @@ const std::vector<Preset> g_presets =
    {"I/O by movAX13h",                          "io.frag.glsl",                     99, -1, -1, -1},
    {"Fractal Tiling by iq",                     "fractal_tiling.frag.glsl",         99, -1, -1, -1},
    {"SH2014 Cellular by vug",                   "sh2014_cellular.frag.glsl",        99, -1, -1, -1},
+   {"NV2015 Space Curvature by iq",             "space_curvature.frag.glsl",        99,  9, -1, -1},
    {"Paralax Fractal Galaxy by CBS",            "galaxy.frag.glsl",                 99, -1, -1, -1}};
+
 #else
 const std::vector<Preset> g_presets =
   {

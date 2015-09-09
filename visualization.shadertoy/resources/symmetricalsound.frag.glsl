@@ -1,5 +1,7 @@
 // Taken from https://www.shadertoy.com/view/MdlSzB
 
+// modified by cgart
+
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
 	vec2 uv = fragCoord.xy / iResolution.xy;
@@ -14,10 +16,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 		uv = 1. - uv;
 	}
 
-	float fft  = texture2D( iChannel0, vec2(uv.x,0.25) ).x; 
+	float fft  = texture2D( iChannel0, vec2(uv.x,0.25) ).x;
 	float dr = length(uv);
-	float radius = 1.8;
-	
+	float radius = 1.0;
+
 	vec3 col = vec3(0.);
 	if( abs(uv.y)<fft )
 	{
@@ -25,7 +27,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	}
 
 
-	fragColor.x = 0.5 - smoothstep(dr, 0.0, radius * col.x);
-	fragColor.y = 1.5 - smoothstep(dr, 0.0, radius * col.z);
-	fragColor.z = 1.5 - smoothstep(dr, 0.0, radius * col.x);
+	fragColor.x = smoothstep(0.0,1.0, abs(sin(iGlobalTime*0.15))) - smoothstep(dr, 0.0, radius * col.x);
+	fragColor.y = 1.0 - smoothstep(dr, 0.0, radius * col.z);
+	fragColor.z = 1.0 - smoothstep(dr, 0.0, radius * col.x);
 }

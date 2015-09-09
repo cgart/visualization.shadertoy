@@ -41,7 +41,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	freqs[2] = texture2D( iChannel0, vec2( 0.15, 0.25 ) ).x;
 	freqs[3] = texture2D( iChannel0, vec2( 0.30, 0.25 ) ).x;
 
-	rad = 0.075 + 0.2 * pow(max(freqs[0],freqs[1]), 3.0);
+	rad = 0.075 + 0.15 * pow(max(freqs[0],freqs[1]), 3.0);
 	disks = disk(r3, vec2(0.,0.), rad);
 	pix = mix(pix, col2, disks);
 

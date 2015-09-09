@@ -47,11 +47,11 @@ build_addon(visualization.shadertoy SHADERTOY DEPLIBS)
 #include(CPack)
 
 
-add_custom_target(addon 
+add_custom_target(addon
+    COMMAND ${CMAKE_COMMAND} -E remove_directory visualization.shadertoy
     COMMAND ${CMAKE_COMMAND} -E make_directory visualization.shadertoy
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/visualization.shadertoy visualization.shadertoy
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:visualization.shadertoy> visualization.shadertoy
     COMMAND zip -r ${CMAKE_SOURCE_DIR}/visualization.shadertoy.zip visualization.shadertoy
     DEPENDS visualization.shadertoy
 )
-
